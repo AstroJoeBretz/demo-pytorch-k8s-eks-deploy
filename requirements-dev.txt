@@ -1,0 +1,18 @@
+# For local development and testing only - NOT what the Docker image
+# installs (see docker/requirements.txt for that, which is deliberately
+# smaller). Install inside a venv: see "Local Python environment" in
+# CLAUDE.md.
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0
+
+# model/inference.py (FastAPI dev server)
+fastapi==0.141.1
+uvicorn==0.53.0
+pydantic==2.13.5
+
+# kserve/pytorch-deploy/ packaging and local TorchServe testing
+# (left unpinned - pin these once you've confirmed the versions
+# you're testing against locally)
+torchserve
+torch-model-archiver

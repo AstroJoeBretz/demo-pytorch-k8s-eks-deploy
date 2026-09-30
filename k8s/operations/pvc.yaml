@@ -1,0 +1,49 @@
+# Example: a PVC for a Redis cache that persists across Pod restarts.
+# NOT used by the model-server itself - the model weights are baked
+# into the image, so there's nothing stateful to persist there.
+#
+# In kind, this uses the default "standard" StorageClass, which
+# dynamically provisions a PV backed by local node storage. On EKS
+# (step 4), the equivalent StorageClass provisions a real EBS volume.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: ml-serving
+spec:
+  accessModes:
+    - ReadWriteOnce  # one node can mount this read-write at a time
+  resources:
+    requests:
+      storage: 1Gi
+---
+# How a Pod would actually use it:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: ml-serving
+spec:
+  replicas: 1  # NOTE: PVCs with ReadWriteOnce can't be shared across
+               # replicas on different nodes - this only works at
+               # replicas: 1 without a more advanced setup
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: data
+              mountPath: /data  # redis writes its persistence file here
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data-pvc

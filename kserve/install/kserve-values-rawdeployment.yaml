@@ -1,0 +1,17 @@
+# Applied with:
+#   helm install kserve oci://ghcr.io/kserve/charts/kserve \
+#     --version v0.14.1 -n kserve --create-namespace \
+#     -f kserve-values-rawdeployment.yaml
+#
+# Check https://kserve.github.io/website/ for the current release
+# before running this "later" - v0.14.1 is what's documented as of
+# when this was written, but KServe moves fast.
+
+kserve:
+  controller:
+    deploymentMode: RawDeployment
+    gateway:
+      ingressGateway:
+        # Reuses the "nginx" IngressClass created back in step 3's
+        # ingress-nginx install - no separate Istio install needed.
+        className: nginx

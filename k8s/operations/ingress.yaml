@@ -1,0 +1,23 @@
+# Requires an Ingress controller running in the cluster - the Ingress
+# object below is just a routing RULE, not a running proxy. See
+# README.md for how to install nginx-ingress into kind.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: model-server-ingress
+  namespace: ml-serving
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /predict
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: model.local
+      http:
+        paths:
+          - path: /predict
+            pathType: Prefix
+            backend:
+              service:
+                name: model-server-service
+                port:
+                  number: 8000

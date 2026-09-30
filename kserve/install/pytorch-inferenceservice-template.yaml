@@ -1,0 +1,26 @@
+# Template for step 6 - not meant to run yet (REPLACE-ME placeholders
+# below). Shown now so the shape is familiar: it's the same
+# InferenceService structure as sklearn-iris-sample.yaml, just pointed
+# at your own model and using the pytorch predictor instead of sklearn.
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: pytorch-toy-classifier
+  namespace: ml-serving
+spec:
+  predictor:
+    # Uses the step-4 IRSA ServiceAccount, so the storage-initializer
+    # init container can actually read from your private S3 bucket -
+    # without this, the init container will fail with an access denied
+    # error before the model ever loads.
+    serviceAccountName: model-server-sa
+
+    pytorch:
+      storageUri: "s3://REPLACE-WITH-YOUR-BUCKET/pytorch-classifier/v1.0/"
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"

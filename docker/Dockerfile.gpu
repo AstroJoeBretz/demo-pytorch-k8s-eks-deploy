@@ -1,0 +1,55 @@
+# syntax=docker/dockerfile:1
+#
+# GPU variant. Use this once you have GPU node groups (e.g. g4dn/g5
+# instances) in your EKS cluster and an actual compute-heavy model to
+# justify them - for a toy classifier like this one, CPU is plenty.
+#
+# Key differences from the CPU Dockerfile:
+#   1. Base image is nvidia/cuda instead of python:slim - it ships the
+#      CUDA runtime libraries the GPU driver needs to talk to.
+#   2. We install the DEFAULT torch wheel (no --index-url override) -
+#      this time we actually want the bundled CUDA support.
+#   3. The image is ~3-4GB larger as a direct result. That's the
+#      tradeoff: don't use this variant unless you need the GPU.
+#
+# Note: this file describes the pattern correctly but has not been
+# build-tested in this environment (no Docker daemon and no network
+# access to nvidia's registry from this sandbox) - test it yourself
+# once you're on a machine with both.
+
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 python3.11-venv python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN python3.11 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN pip install --no-cache-dir torch
+
+COPY docker/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --uid 1000 appuser
+WORKDIR /app
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY model/model.py model/inference.py ./
+COPY model/model_artifacts/ ./model_artifacts/
+
+ENV MODEL_PATH=/app/model_artifacts/model.pt
+ENV PYTHONUNBUFFERED=1
+
+USER appuser
+EXPOSE 8000
+
+CMD ["python3.11", "-m", "uvicorn", "inference:app", "--host", "0.0.0.0", "--port", "8000"]

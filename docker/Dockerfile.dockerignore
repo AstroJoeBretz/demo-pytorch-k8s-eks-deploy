@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.DS_Store
+k8s/
+kserve/
+CLAUDE.md
+requirements-dev.txt
+model/train.py

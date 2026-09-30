@@ -1,0 +1,53 @@
+# A Deployment doesn't run pods directly - it manages a ReplicaSet, which
+# manages the actual Pods. You'll almost never create ReplicaSets or Pods
+# by hand; Deployment is the object you interact with, and it handles the
+# layers underneath.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx-demo
+spec:
+  replicas: 2  # Kubernetes will continuously enforce "2 pods must exist"
+
+  # This selector is how the Deployment finds "its" pods. It MUST match
+  # the labels in template.metadata.labels below - if they don't match,
+  # the Deployment can't find/manage anything and kubectl apply will
+  # actually reject it as invalid.
+  selector:
+    matchLabels:
+      app: nginx-demo
+
+  template:  # the pod "stamp" used to create each replica
+    metadata:
+      labels:
+        app: nginx-demo  # must match spec.selector.matchLabels above
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27
+          ports:
+            - containerPort: 80
+
+          # Without limits, one misbehaving pod can starve every other
+          # pod on the node. Without requests, the scheduler has no idea
+          # how much room to reserve when deciding which node to place
+          # this pod on.
+          resources:
+            requests:
+              cpu: "100m"      # 100 millicores = 0.1 of one CPU core
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+
+          # A preview of step 3: Kubernetes checks this before marking
+          # the pod ready to receive traffic. Until it passes, the
+          # Service (below) won't route requests to this pod.
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5

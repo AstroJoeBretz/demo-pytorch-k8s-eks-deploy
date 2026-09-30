@@ -1,0 +1,53 @@
+# Applied with: eksctl create cluster -f cluster.yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ml-serving-cluster
+  region: us-west-2
+  version: "1.31"
+
+iam:
+  # REQUIRED for IRSA - without this, ServiceAccount annotations for AWS
+  # access have nothing to attach to. Easy to forget since the cluster
+  # works fine without it right up until you need S3 access from a pod.
+  withOIDC: true
+
+managedNodeGroups:
+  - name: cpu-workers
+    instanceType: m5.large
+    minSize: 1
+    desiredCapacity: 2
+    maxSize: 4
+    volumeSize: 40
+    labels:
+      workload: cpu
+    tags:
+      environment: learning
+
+  # Uncomment once you're actually deploying a GPU-dependent model.
+  # Kept as a separate node group (not mixed into cpu-workers) so
+  # ordinary CPU pods - the FastAPI server itself, Redis, ingress
+  # controllers - never get scheduled onto expensive GPU instances by
+  # accident. minSize: 0 means it costs nothing while unused, but also
+  # means the first pod that needs it will wait for a node to launch.
+  # - name: gpu-workers
+  #   instanceType: g4dn.xlarge
+  #   minSize: 0
+  #   desiredCapacity: 0
+  #   maxSize: 2
+  #   labels:
+  #     workload: gpu
+  #   taints:
+  #     - key: nvidia.com/gpu
+  #       value: "true"
+  #       effect: NoSchedule
+
+addons:
+  - name: vpc-cni
+  - name: coredns
+  - name: kube-proxy
+  - name: aws-ebs-csi-driver
+    # This add-on needs its own IRSA role to create/attach real EBS
+    # volumes - see README.md for the two-step setup (create the role,
+    # then point the add-on at it).

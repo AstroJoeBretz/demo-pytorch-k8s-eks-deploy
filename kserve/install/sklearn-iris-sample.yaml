@@ -1,0 +1,17 @@
+# The standard "first InferenceService" from KServe's own docs. Model
+# weights are pulled from a public GCS bucket KServe maintains for
+# exactly this purpose - no S3/IRSA setup needed for this one, which is
+# why it's worth deploying FIRST: it isolates "is KServe itself working"
+# from "is my storage/IRSA setup working," so you're not debugging both
+# at once.
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: sklearn-iris
+  namespace: ml-serving
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: sklearn
+      storageUri: "gs://kfserving-examples/models/sklearn/1.0/model"

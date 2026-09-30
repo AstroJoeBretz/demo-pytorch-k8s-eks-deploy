@@ -1,0 +1,31 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: pytorch-toy-classifier
+  namespace: ml-serving
+spec:
+  predictor:
+    serviceAccountName: model-server-sa  # IRSA - S3 read access, from step 4
+
+    # RawDeployment autoscaling is plain HPA underneath (step 3) - these
+    # fields are exactly what an HPA's minReplicas/maxReplicas/target
+    # utilization would be, just expressed through the InferenceService
+    # instead of a separate HPA object.
+    minReplicas: 1
+    maxReplicas: 5
+    scaleTarget: 75
+    scaleMetric: cpu
+
+    pytorch:
+      storageUri: "s3://REPLACE-WITH-YOUR-BUCKET/pytorch-classifier/v1.0/"
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+          # Uncomment once the gpu-workers node group from step 4 is
+          # active, and delete the cpu/memory limits above in favor of
+          # whatever this model actually needs on GPU:
+          # nvidia.com/gpu: "1"

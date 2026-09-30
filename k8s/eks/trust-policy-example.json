@@ -1,0 +1,20 @@
+{
+  "_comment": "This is what 'eksctl create iamserviceaccount' generates for you automatically - included here so the mechanism is visible, not so you apply it by hand. Replace ACCOUNT_ID, REGION, and OIDC_ID with your cluster's actual values (eksctl fills these in for real).",
+
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/oidc.eks.REGION.amazonaws.com/id/OIDC_ID"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.REGION.amazonaws.com/id/OIDC_ID:sub": "system:serviceaccount:ml-serving:model-server-sa",
+          "oidc.eks.REGION.amazonaws.com/id/OIDC_ID:aud": "sts.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

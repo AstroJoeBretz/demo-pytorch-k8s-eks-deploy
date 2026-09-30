@@ -1,0 +1,20 @@
+# A Service is a stable network identity for a *set* of pods, defined
+# entirely by the selector below. It doesn't know or care that a
+# Deployment created these pods - it just watches for anything in the
+# cluster with a matching label and load-balances across it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: ClusterIP  # only reachable from inside the cluster (the default)
+
+  # This is the entire link between Service and Deployment - there is no
+  # other reference between these two files. Change this label and the
+  # Service instantly stops routing to the pods above, with no error.
+  selector:
+    app: nginx-demo
+
+  ports:
+    - port: 80        # the port other things inside the cluster call
+      targetPort: 80  # the port the container actually listens on

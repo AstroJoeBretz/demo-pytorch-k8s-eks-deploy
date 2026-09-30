@@ -1,0 +1,57 @@
+# This is the exact pattern IRSA extends in step 4 (EKS). There, the
+# ServiceAccount below gets one extra annotation mapping it to an AWS
+# IAM role, and suddenly Pods running as this ServiceAccount can read
+# from S3 without any credentials baked into the image. Understanding
+# plain RBAC first is what makes that click later.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: model-server-sa
+  namespace: ml-serving
+---
+# A Role's permissions only apply within its own namespace (ml-serving
+# here). For permissions that span the whole cluster, use ClusterRole
+# instead - not needed for anything in this project.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: model-server-role
+  namespace: ml-serving
+rules:
+  # Example: let the model server read ConfigMaps (e.g. for feature
+  # flags or model config) but nothing else - deliberately minimal.
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+---
+# The RoleBinding is what actually grants the permissions - a Role by
+# itself, unbound, does nothing.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: model-server-binding
+  namespace: ml-serving
+subjects:
+  - kind: ServiceAccount
+    name: model-server-sa
+    namespace: ml-serving
+roleRef:
+  kind: Role
+  name: model-server-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# A Pod opts into this identity explicitly. Without serviceAccountName,
+# Pods run as the namespace's "default" ServiceAccount, which normally
+# has no meaningful permissions - the safe default.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rbac-demo-pod
+  namespace: ml-serving
+spec:
+  serviceAccountName: model-server-sa
+  containers:
+    - name: demo
+      image: bitnami/kubectl:latest
+      command: ["sleep", "3600"]
